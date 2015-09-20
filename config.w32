@@ -1,0 +1,13 @@
+// $Id$
+// vim:ft=javascript
+
+// If your extension references something external, use ARG_WITH
+// ARG_WITH("mostsimpleclock", "for mostsimpleclock support", "no");
+
+// Otherwise, use ARG_ENABLE
+// ARG_ENABLE("mostsimpleclock", "enable mostsimpleclock support", "no");
+
+if (PHP_MOSTSIMPLECLOCK != "no") {
+	EXTENSION("mostsimpleclock", "mostsimpleclock.c");
+}
+
