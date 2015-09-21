@@ -54,11 +54,11 @@ PHP_FUNCTION(dime_clock_action) {
 	char pressed_key;
 	void* status;
 	zval *clock_array, **data;
-    HashTable *arr_hash;
-    HashPosition pointer;
-    char *key;
-    int key_len;
-    long index;
+	HashTable *arr_hash;
+	HashPosition pointer;
+	char *key;
+	int key_len;
+	long index;
 	pthread_t clock_thread;
 	struct clocks_struct clock_args;
 
@@ -124,27 +124,27 @@ PHP_FUNCTION(dime_clock_action) {
 
 // We give PHP aware of our function, indicating its function table module.
 const zend_function_entry clockthread_functions[] = {
-    PHP_FE(dime_clock_action, NULL)
-    PHP_FE_END
+	PHP_FE(dime_clock_action, NULL)
+	PHP_FE_END
 };
 
 // We define a function that will cause php when connecting our expansion.
 PHP_MINIT_FUNCTION( clockthread_init )
 {
-    return SUCCESS;
+	return SUCCESS;
 }
 
 zend_module_entry clockthread_module_entry = {
-    STANDARD_MODULE_HEADER,
-    "clockthread", // the name of the extension.
+	STANDARD_MODULE_HEADER,
+	"clockthread", // the name of the extension.
 	clockthread_functions,
-    PHP_MINIT(clockthread_init),
-    NULL, // MSHUTDOWN
-    NULL, // RINIT
-    NULL, // RSHUTDOWN
-    NULL, // MINFO
-    "0.1", //version of the extension.
-    STANDARD_MODULE_PROPERTIES
+	PHP_MINIT(clockthread_init),
+	NULL, // MSHUTDOWN
+	NULL, // RINIT
+	NULL, // RSHUTDOWN
+	NULL, // MINFO
+	"0.1", //version of the extension.
+	STANDARD_MODULE_PROPERTIES
 };
 
 #ifdef COMPILE_DL_CLOCKTHREAD
