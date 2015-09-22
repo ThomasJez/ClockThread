@@ -1,3 +1,8 @@
+/*
+ * PHP Extension clockthread
+ * Author: Thomas Jez
+ *
+ */
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -23,11 +28,13 @@ struct clocks_struct {
 	int anz_clocks;
 };
 
+/*
+ * The function which runs the clocks
+ */
+
 static void *clock_loop(void* _clock_args) {
-	time_t start_time;
 	int x, y, i;
 	struct clocks_struct *clock_args = (struct clocks_struct*) _clock_args;
-
 	while (stop == 0) {
 		time_t now;
 		time(&now);
@@ -46,49 +53,49 @@ static void *clock_loop(void* _clock_args) {
 		fflush(stdout);
 		sleep(1);
 	}
+//	free(clock_args->clock);
+	return NULL;
 }
 
-PHP_FUNCTION(dime_clock_action) {
-	long anz_activities;
-	char action[100];
-	char pressed_key;
-	void* status;
-	zval *clock_array, **data;
+/*
+ * prepares the parameters for the clock thread and starts it
+ */
+static void run_clocks(pthread_t* clock_thread, struct clocks_struct* clock_args, zval* clock_array) {
+	char *key;
+	uint key_len;
+	int array_count;
 	HashTable *arr_hash;
 	HashPosition pointer;
-	char *key;
-	int key_len;
-	long index;
-	pthread_t clock_thread;
-	struct clocks_struct clock_args;
-
-    int array_count;
-
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "la", &anz_activities, &clock_array) != SUCCESS) {
-		return;
-	}
-
-	line = 0;
-	stop = 0;
+	zval **data;
+	ulong index;
 
 	arr_hash = Z_ARRVAL_P(clock_array);
 	array_count = zend_hash_num_elements(arr_hash);
-	clock_args.clock = calloc(array_count, sizeof(struct clock_struct));
-	clock_args.anz_clocks = array_count;
+	clock_args->clock = calloc(array_count, sizeof(struct clock_struct));
+	clock_args->anz_clocks = array_count;
 
 	int i = 0;
+
 	for(zend_hash_internal_pointer_reset_ex(arr_hash, &pointer);
 			zend_hash_get_current_data_ex(arr_hash, (void**) &data, &pointer) == SUCCESS;
 			zend_hash_move_forward_ex(arr_hash, &pointer)) {
 
 		zend_hash_get_current_key_ex(arr_hash, &key, &key_len, &index, 0, &pointer);
-		clock_args.clock[i].start_time = Z_LVAL_PP(data);
-		clock_args.clock[i].x = 62;
-		clock_args.clock[i].y = index + 4;
+		clock_args->clock[i].start_time = Z_LVAL_PP(data);
+		clock_args->clock[i].x = 62;
+		clock_args->clock[i].y = index + 4;
 		i++;
 	}
 
-	pthread_create(&clock_thread, NULL, clock_loop, (void*)&clock_args);
+	pthread_create(clock_thread, NULL, clock_loop, (void*)clock_args);
+}
+
+/*
+ * gets and processes the user input
+ */
+static char* getAction(long anz_activities) {
+	static char action[100];
+	char pressed_key;
 
 	struct termios oldt, newt;
 	tcgetattr( STDIN_FILENO, &oldt );
@@ -117,6 +124,34 @@ PHP_FUNCTION(dime_clock_action) {
 	}
 	stop = 1;
 	tcsetattr( STDIN_FILENO, TCSANOW, &oldt );
+	return (char*)&action;
+}
+
+/*
+ * The implementation of the PHP function which starts the whole thing
+ */
+PHP_FUNCTION(dime_clock_action) {
+	long anz_activities;
+	char action[100];
+	void* status;
+	zval *clock_array;
+	pthread_t clock_thread;
+	struct clocks_struct clock_args;
+
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "la", &anz_activities, &clock_array) != SUCCESS) {
+		return;
+	}
+
+	line = 0;
+	stop = 0;
+
+	clock_args.anz_clocks = 0;
+	clock_args.clock = NULL;
+
+	//	pthread_create(&clock_thread, NULL, clock_loop, (void*)&clock_args);
+	run_clocks(&clock_thread, &clock_args, clock_array);
+	strcpy(action, getAction(anz_activities));
+	stop = 1;
 	pthread_join(clock_thread, &status);
 	free(clock_args.clock);
 	RETURN_STRING(action, 1);
