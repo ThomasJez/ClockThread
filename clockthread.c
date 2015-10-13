@@ -27,6 +27,8 @@ struct clocks_struct {
 	struct clock_struct* clock;
 	int anz_clocks;
 };
+static struct clocks_struct clock_args;
+static pthread_t clock_thread;
 
 /*
  * The function which runs the clocks
@@ -53,7 +55,7 @@ static void *clock_loop(void* _clock_args) {
 		fflush(stdout);
 		sleep(1);
 	}
-//	free(clock_args->clock);
+	free(clock_args->clock);
 	return NULL;
 }
 
@@ -90,53 +92,10 @@ static void run_clocks(pthread_t* clock_thread, struct clocks_struct* clock_args
 	pthread_create(clock_thread, NULL, clock_loop, (void*)clock_args);
 }
 
-/*
- * gets and processes the user input
- */
-static char* getAction(long anz_activities) {
-	static char action[100];
-	char pressed_key;
 
-	struct termios oldt, newt;
-	tcgetattr( STDIN_FILENO, &oldt );
-	newt = oldt;
-	newt.c_lflag &= ~( ICANON | ECHO );
-	tcsetattr( STDIN_FILENO, TCSANOW, &newt );
-	strcpy(action, "undefined");
-	while (1) {
-		pressed_key = getchar();
-		if (pressed_key == 65 && line > 0) { //is arrow up pressed?
-			line--;
-			php_printf("\x1B[%d;%dH", line + 4, 3);
-		}
-		if (pressed_key == 66 && line < anz_activities - 1) {   //is arrow down pressed?
-			line++;
-			php_printf("\x1B[%d;%dH", line + 4, 3);
-		}
-		if (pressed_key == 'q') {
-			sprintf(action, "quit,%d", line);
-			break;
-		}
-		if (pressed_key == 10) {  //is ENTER pressed?
-			sprintf(action, "enter,%d", line);
-			break;
-		}
-	}
-	stop = 1;
-	tcsetattr( STDIN_FILENO, TCSANOW, &oldt );
-	return (char*)&action;
-}
-
-/*
- * The implementation of the PHP function which starts the whole thing
- */
-PHP_FUNCTION(dime_clock_action) {
+PHP_FUNCTION(clock_start) {
 	long anz_activities;
-	char action[100];
-	void* status;
 	zval *clock_array;
-	pthread_t clock_thread;
-	struct clocks_struct clock_args;
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "la", &anz_activities, &clock_array) != SUCCESS) {
 		return;
@@ -148,18 +107,36 @@ PHP_FUNCTION(dime_clock_action) {
 	clock_args.anz_clocks = 0;
 	clock_args.clock = NULL;
 
-	//	pthread_create(&clock_thread, NULL, clock_loop, (void*)&clock_args);
 	run_clocks(&clock_thread, &clock_args, clock_array);
-	strcpy(action, getAction(anz_activities));
+	RETURN_LONG(clock_thread);
+}
+
+PHP_FUNCTION(clock_return2line) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "l", &line) != SUCCESS) {
+		return;
+	}
+
+	RETURN_NULL();
+}
+
+PHP_FUNCTION(clock_stop) {
+	void* status;
+
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "l", &clock_thread) != SUCCESS) {
+		return;
+	}
+
 	stop = 1;
 	pthread_join(clock_thread, &status);
-	free(clock_args.clock);
-	RETURN_STRING(action, 1);
+
+	RETURN_NULL();
 }
 
 // We give PHP aware of our function, indicating its function table module.
 const zend_function_entry clockthread_functions[] = {
-	PHP_FE(dime_clock_action, NULL)
+	PHP_FE(clock_start, NULL)
+	PHP_FE(clock_return2line, NULL)
+	PHP_FE(clock_stop, NULL)
 	PHP_FE_END
 };
 
