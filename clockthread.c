@@ -30,6 +30,8 @@ struct clocks_struct {
 static struct clocks_struct clock_args;
 static pthread_t clock_thread;
 
+zend_class_entry *clockthread_class;
+
 /*
  * The function which runs the clocks
  */
@@ -92,7 +94,7 @@ static void run_clocks(pthread_t* clock_thread, struct clocks_struct* clock_args
 	pthread_create(clock_thread, NULL, clock_loop, (void*)clock_args);
 }
 
-
+/*
 PHP_FUNCTION(clock_start) {
 	long anz_activities;
 	zval *clock_array;
@@ -110,8 +112,9 @@ PHP_FUNCTION(clock_start) {
 	run_clocks(&clock_thread, &clock_args, clock_array);
 	RETURN_LONG(clock_thread);
 }
+*/
 
-PHP_FUNCTION(clock_return2line) {
+PHP_METHOD(Clockthread, return2line) {
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "l", &line) != SUCCESS) {
 		return;
 	}
@@ -119,7 +122,7 @@ PHP_FUNCTION(clock_return2line) {
 	RETURN_NULL();
 }
 
-PHP_FUNCTION(clock_stop) {
+PHP_METHOD(Clockthread, stop) {
 	void* status;
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "l", &clock_thread) != SUCCESS) {
@@ -132,17 +135,40 @@ PHP_FUNCTION(clock_stop) {
 	RETURN_NULL();
 }
 
+PHP_METHOD(Clockthread, start)
+{
+	long anz_activities;
+	zval *clock_array;
+
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "la", &anz_activities, &clock_array) != SUCCESS) {
+		return;
+	}
+
+	line = 0;
+	stop = 0;
+
+	clock_args.anz_clocks = 0;
+	clock_args.clock = NULL;
+
+	run_clocks(&clock_thread, &clock_args, clock_array);
+	RETURN_LONG(clock_thread);
+}
+
 // We give PHP aware of our function, indicating its function table module.
 const zend_function_entry clockthread_functions[] = {
-	PHP_FE(clock_start, NULL)
-	PHP_FE(clock_return2line, NULL)
-	PHP_FE(clock_stop, NULL)
+//	PHP_FE(clock_start, NULL)
+	PHP_ME(Clockthread, return2line, NULL, ZEND_ACC_PUBLIC | ZEND_ACC_STATIC)
+	PHP_ME(Clockthread, stop, NULL, ZEND_ACC_PUBLIC | ZEND_ACC_STATIC)
+	PHP_ME(Clockthread, start, NULL, ZEND_ACC_PUBLIC | ZEND_ACC_STATIC)
 	PHP_FE_END
 };
 
 // We define a function that will cause php when connecting our expansion.
 PHP_MINIT_FUNCTION( clockthread_init )
 {
+	zend_class_entry tmp_clockthread;
+	INIT_CLASS_ENTRY(tmp_clockthread, "Clockthread", clockthread_functions);
+	clockthread_class = zend_register_internal_class(&tmp_clockthread TSRMLS_CC);
 	return SUCCESS;
 }
 
