@@ -12,8 +12,8 @@
 #include "php_clockthread.h"
 #include "pthread.h"
 #include <stdio.h>
-#include <termios.h>
-#include <unistd.h>
+//#include <termios.h>
+//#include <unistd.h>
 
 static int line;
 static int stop;
@@ -28,7 +28,7 @@ struct clocks_struct {
 	int anz_clocks;
 };
 static struct clocks_struct clock_args;
-static pthread_t clock_thread;
+static pthread_t clock_thread = 0;
 
 zend_class_entry *clockthread_class;
 
@@ -64,7 +64,7 @@ static void *clock_loop(void* _clock_args) {
 /*
  * prepares the parameters for the clock thread and starts it
  */
-static void run_clocks(pthread_t* clock_thread, struct clocks_struct* clock_args, zval* clock_array) {
+static void run_clocks(struct clocks_struct* clock_args, zval* clock_array) {
 	char *key;
 	uint key_len;
 	int array_count;
@@ -72,6 +72,14 @@ static void run_clocks(pthread_t* clock_thread, struct clocks_struct* clock_args
 	HashPosition pointer;
 	zval **data;
 	ulong index;
+	void* status;
+
+	if (clock_thread != 0) {
+		stop = 1;
+		pthread_join(clock_thread, &status);
+	}
+	stop = 0;
+	clock_thread = 0;
 
 	arr_hash = Z_ARRVAL_P(clock_array);
 	array_count = zend_hash_num_elements(arr_hash);
@@ -91,28 +99,9 @@ static void run_clocks(pthread_t* clock_thread, struct clocks_struct* clock_args
 		i++;
 	}
 
-	pthread_create(clock_thread, NULL, clock_loop, (void*)clock_args);
-}
-
-/*
-PHP_FUNCTION(clock_start) {
-	long anz_activities;
-	zval *clock_array;
-
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "la", &anz_activities, &clock_array) != SUCCESS) {
-		return;
-	}
-
 	line = 0;
-	stop = 0;
-
-	clock_args.anz_clocks = 0;
-	clock_args.clock = NULL;
-
-	run_clocks(&clock_thread, &clock_args, clock_array);
-	RETURN_LONG(clock_thread);
+	pthread_create(&clock_thread, NULL, clock_loop, (void*)clock_args);
 }
-*/
 
 PHP_METHOD(Clockthread, return2line) {
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "l", &line) != SUCCESS) {
@@ -144,19 +133,15 @@ PHP_METHOD(Clockthread, start)
 		return;
 	}
 
-	line = 0;
-	stop = 0;
-
 	clock_args.anz_clocks = 0;
 	clock_args.clock = NULL;
 
-	run_clocks(&clock_thread, &clock_args, clock_array);
+	run_clocks(&clock_args, clock_array);
 	RETURN_LONG(clock_thread);
 }
 
 // We give PHP aware of our function, indicating its function table module.
 const zend_function_entry clockthread_functions[] = {
-//	PHP_FE(clock_start, NULL)
 	PHP_ME(Clockthread, return2line, NULL, ZEND_ACC_PUBLIC | ZEND_ACC_STATIC)
 	PHP_ME(Clockthread, stop, NULL, ZEND_ACC_PUBLIC | ZEND_ACC_STATIC)
 	PHP_ME(Clockthread, start, NULL, ZEND_ACC_PUBLIC | ZEND_ACC_STATIC)
