@@ -141,9 +141,9 @@ ZEND_ARG_INFO(0, clock_array)
 ZEND_END_ARG_INFO()
 
 const zend_function_entry clockthread_functions[] = {
-	PHP_ME(Clockthread, return2line, NULL, ZEND_ACC_PUBLIC | ZEND_ACC_STATIC)
-	PHP_ME(Clockthread, stop, NULL, ZEND_ACC_PUBLIC | ZEND_ACC_STATIC)
-	PHP_ME(Clockthread, start, NULL, ZEND_ACC_PUBLIC | ZEND_ACC_STATIC)
+	PHP_ME(Clockthread, return2line, arginfo_clockthread_return2line, ZEND_ACC_PUBLIC | ZEND_ACC_STATIC)
+	PHP_ME(Clockthread, stop, arginfo_clockthread_stop, ZEND_ACC_PUBLIC | ZEND_ACC_STATIC)
+	PHP_ME(Clockthread, start, arginfo_clockthread_start, ZEND_ACC_PUBLIC | ZEND_ACC_STATIC)
 	PHP_FE_END
 };
 
