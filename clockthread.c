@@ -113,11 +113,11 @@ PHP_METHOD(Clockthread, return2line) {
 
 PHP_METHOD(Clockthread, stop) {
 	void* status;
-
+/*
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "l", &clock_thread) != SUCCESS) {
 		return;
 	}
-
+*/
 	stop = 1;
 	pthread_join(clock_thread, &status);
 
@@ -149,11 +149,19 @@ const zend_function_entry clockthread_functions[] = {
 };
 
 // We define a function that will cause php when connecting our expansion.
-PHP_MINIT_FUNCTION( clockthread_init )
+PHP_MINIT_FUNCTION(clockthread_init)
 {
 	zend_class_entry tmp_clockthread;
 	INIT_CLASS_ENTRY(tmp_clockthread, "Clockthread", clockthread_functions);
 	clockthread_class = zend_register_internal_class(&tmp_clockthread TSRMLS_CC);
+	return SUCCESS;
+}
+
+PHP_MSHUTDOWN_FUNCTION(clockthread_shutdown)
+{
+	void* status;
+	stop = 1;
+	pthread_join(clock_thread, &status);
 	return SUCCESS;
 }
 
@@ -162,7 +170,7 @@ zend_module_entry clockthread_module_entry = {
 	"clockthread", // the name of the extension.
 	clockthread_functions,
 	PHP_MINIT(clockthread_init),
-	NULL, // MSHUTDOWN
+	PHP_MSHUTDOWN(clockthread_shutdown),
 	NULL, // RINIT
 	NULL, // RSHUTDOWN
 	NULL, // MINFO
@@ -173,4 +181,3 @@ zend_module_entry clockthread_module_entry = {
 #ifdef COMPILE_DL_CLOCKTHREAD
 ZEND_GET_MODULE(clockthread)
 #endif
-
