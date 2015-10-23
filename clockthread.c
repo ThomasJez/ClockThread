@@ -45,7 +45,7 @@ static void *clock_loop(void* _clock_array) {
 	zval* clock_array = (zval*) _clock_array;
 	arr_hash = Z_ARRVAL_P(clock_array);
 	array_count = zend_hash_num_elements(arr_hash);
-	clock_args.clock = calloc(array_count, sizeof(struct clock_struct));
+	clock_args.clock = ecalloc(array_count, sizeof(struct clock_struct));
 	clock_args.anz_clocks = array_count;
 
 	i = 0;
@@ -79,7 +79,7 @@ static void *clock_loop(void* _clock_array) {
 		fflush(stdout);
 		sleep(1);
 	}
-	free(clock_args.clock);
+	efree(clock_args.clock);
 	return NULL;
 }
 
