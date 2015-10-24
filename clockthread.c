@@ -71,7 +71,7 @@ static void run_clocks(pthread_t* clock_thread, struct clocks_struct* clock_args
 
 	arr_hash = Z_ARRVAL_P(clock_array);
 	array_count = zend_hash_num_elements(arr_hash);
-	clock_args->clock = calloc(array_count, sizeof(struct clock_struct));
+	clock_args->clock = ecalloc(array_count, sizeof(struct clock_struct));
 	clock_args->anz_clocks = array_count;
 
 	int i = 0;
@@ -153,7 +153,7 @@ PHP_FUNCTION(dime_clock_action) {
 	strcpy(action, getAction(anz_activities));
 	stop = 1;
 	pthread_join(clock_thread, &status);
-	free(clock_args.clock);
+	efree(clock_args.clock);
 	RETURN_STRING(action, 1);
 }
 
