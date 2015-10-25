@@ -93,8 +93,8 @@ static void run_clocks(pthread_t* clock_thread, struct clocks_struct* clock_args
 /*
  * gets and processes the user input
  */
-static char* getAction(long anz_activities) {
-	static char action[100];
+void getAction(long anz_activities, zval* return_value) {
+//	static char action[100];
 	char pressed_key;
 
 	struct termios oldt, newt;
@@ -102,7 +102,8 @@ static char* getAction(long anz_activities) {
 	newt = oldt;
 	newt.c_lflag &= ~( ICANON | ECHO );
 	tcsetattr( STDIN_FILENO, TCSANOW, &newt );
-	strcpy(action, "undefined");
+//	strcpy(action, "undefined");
+	array_init_size(return_value, 2);
 	while (1) {
 		pressed_key = getchar();
 		if (pressed_key == 65 && line > 0) { //is arrow up pressed?
@@ -114,17 +115,23 @@ static char* getAction(long anz_activities) {
 			php_printf("\x1B[%d;%dH", line + 4, 3);
 		}
 		if (pressed_key == 'q') {
-			sprintf(action, "quit,%d", line);
+//			sprintf(action, "quit,%d", line);
+			add_next_index_string(return_value, "quit", 1);
+			add_next_index_long(return_value, line);
+
 			break;
 		}
 		if (pressed_key == 10) {  //is ENTER pressed?
-			sprintf(action, "enter,%d", line);
+//			sprintf(action, "enter,%d", line);
+			add_next_index_string(return_value, "enter", 1);
+			add_next_index_long(return_value, line);
 			break;
 		}
 	}
 	stop = 1;
 	tcsetattr( STDIN_FILENO, TCSANOW, &oldt );
-	return (char*)&action;
+	//	return (char*)&action;
+	return;
 }
 
 /*
@@ -132,7 +139,7 @@ static char* getAction(long anz_activities) {
  */
 PHP_FUNCTION(dime_clock_action) {
 	long anz_activities;
-	char action[100];
+//	char action[100];
 	void* status;
 	zval *clock_array;
 	pthread_t clock_thread;
@@ -150,11 +157,14 @@ PHP_FUNCTION(dime_clock_action) {
 
 	//	pthread_create(&clock_thread, NULL, clock_loop, (void*)&clock_args);
 	run_clocks(&clock_thread, &clock_args, clock_array);
-	strcpy(action, getAction(anz_activities));
+	//	strcpy(action, getAction(anz_activities, return_value));
+	getAction(anz_activities, return_value);
 	stop = 1;
 	pthread_join(clock_thread, &status);
 	efree(clock_args.clock);
-	RETURN_STRING(action, 1);
+
+	RETURN_ZVAL(return_value, 0, 0);
+	//	RETURN_STRING(action, 1);
 }
 
 // We give PHP aware of our function, indicating its function table module.
