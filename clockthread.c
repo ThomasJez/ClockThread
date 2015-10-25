@@ -47,9 +47,9 @@ static void *clock_loop(void* _clock_args) {
 			stunden = dauer / 3600;
 			minuten = (dauer % 3600) / 60;
 			sekunden = (dauer % 3600) % 60;
-			php_printf("\x1B[%d;%dH%02d:%02d:%02d\n", y, x, stunden, minuten, sekunden);
+			php_printf("\x1B[%d;%dH%02d:%02d:%02d\n", y, x, stunden, minuten, sekunden); //moves the cursor to row y, col x and prints the time
 		}
-		php_printf("\x1B[%d;%dH", line + 4, 3);
+		php_printf("\x1B[%d;%dH", line + 4, 3); //moves the cursor back
 		fflush(stdout);
 		sleep(1);
 	}
@@ -68,6 +68,7 @@ static void run_clocks(pthread_t* clock_thread, struct clocks_struct* clock_args
 	zval **data;
 	ulong index;
 
+//reads the clock params from the zval param into internal structure
 	arr_hash = Z_ARRVAL_P(clock_array);
 	array_count = zend_hash_num_elements(arr_hash);
 	clock_args->clock = ecalloc(array_count, sizeof(struct clock_struct));
@@ -86,6 +87,7 @@ static void run_clocks(pthread_t* clock_thread, struct clocks_struct* clock_args
 		i++;
 	}
 
+//starts the actual clock thread
 	pthread_create(clock_thread, NULL, clock_loop, (void*)clock_args);
 }
 
@@ -95,11 +97,13 @@ static void run_clocks(pthread_t* clock_thread, struct clocks_struct* clock_args
 void getAction(long anz_activities, zval* return_value) {
 	char pressed_key;
 
+//deactivates standard console behaviour (no echo, no carriage return if Enter is pressed)
 	struct termios oldt, newt;
 	tcgetattr( STDIN_FILENO, &oldt );
 	newt = oldt;
 	newt.c_lflag &= ~( ICANON | ECHO );
 	tcsetattr( STDIN_FILENO, TCSANOW, &newt );
+
 	array_init_size(return_value, 2);
 	while (1) {
 		pressed_key = getchar();
@@ -112,38 +116,43 @@ void getAction(long anz_activities, zval* return_value) {
 			php_printf("\x1B[%d;%dH", line + 4, 3);
 		}
 		if (pressed_key == 'q') {
+			//says we want to exit the application
 			add_next_index_string(return_value, "quit", 1);
 			add_next_index_long(return_value, line);
-
 			break;
 		}
 		if (pressed_key == 10) {  //is ENTER pressed?
+			//says we want to switch the chosen activity
 			add_next_index_string(return_value, "enter", 1);
 			add_next_index_long(return_value, line);
 			break;
 		}
 	}
-	stop = 1;
-	tcsetattr( STDIN_FILENO, TCSANOW, &oldt );
+	stop = 1; //if q or enter is pressed we send the cklock loop a stop signal
+	tcsetattr( STDIN_FILENO, TCSANOW, &oldt ); //we reactivate the standard console behaviour
 	return;
 }
 
 /*
- * The implementation of the PHP function which starts the whole thing
+ * The implementation of the PHP function
  */
 PHP_FUNCTION(dime_clock_action) {
+	//the function params
 	long anz_activities;
-	void* status;
 	zval *clock_array;
+
+	//for the thread control
 	pthread_t clock_thread;
+	void* status;
+
+	line = 0;
+	stop = 0;
+
 	struct clocks_struct clock_args;
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "la", &anz_activities, &clock_array) != SUCCESS) {
 		return;
 	}
-
-	line = 0;
-	stop = 0;
 
 	clock_args.anz_clocks = 0;
 	clock_args.clock = NULL;
@@ -157,32 +166,34 @@ PHP_FUNCTION(dime_clock_action) {
 	RETURN_ZVAL(return_value, 0, 0);
 }
 
+//Parameter info
 ZEND_BEGIN_ARG_INFO(arginfo_dime_clock_action, 0)
 ZEND_ARG_INFO(0, anz_activities)
 ZEND_ARG_INFO(0, clock_array)
 ZEND_END_ARG_INFO()
 
-// We give PHP aware of our function, indicating its function table module.
+//Information about the module functions for the Zend engine
 const zend_function_entry clockthread_functions[] = {
 	PHP_FE(dime_clock_action, arginfo_dime_clock_action)
 	PHP_FE_END
 };
 
-// We define a function that will cause php when connecting our expansion.
+//Module init
 PHP_MINIT_FUNCTION( clockthread_init )
 {
 	return SUCCESS;
 }
 
+//Information about the module for the Zend engine
 zend_module_entry clockthread_module_entry = {
 	STANDARD_MODULE_HEADER,
 	"clockthread", // the name of the extension.
 	clockthread_functions,
-	PHP_MINIT(clockthread_init),
+	PHP_MINIT(clockthread_init), //when the the extension is loaded
 	NULL, // MSHUTDOWN
-	NULL, // RINIT
+	NULL, // RINIT  //when a request is started
 	NULL, // RSHUTDOWN
-	NULL, // MINFO
+	NULL, // MINFO  // for PHPinfo
 	"0.1", //version of the extension.
 	STANDARD_MODULE_PROPERTIES
 };
