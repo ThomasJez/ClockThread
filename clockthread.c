@@ -53,7 +53,6 @@ static void *clock_loop(void* _clock_args) {
 		fflush(stdout);
 		sleep(1);
 	}
-//	free(clock_args->clock);
 	return NULL;
 }
 
@@ -94,7 +93,6 @@ static void run_clocks(pthread_t* clock_thread, struct clocks_struct* clock_args
  * gets and processes the user input
  */
 void getAction(long anz_activities, zval* return_value) {
-//	static char action[100];
 	char pressed_key;
 
 	struct termios oldt, newt;
@@ -102,7 +100,6 @@ void getAction(long anz_activities, zval* return_value) {
 	newt = oldt;
 	newt.c_lflag &= ~( ICANON | ECHO );
 	tcsetattr( STDIN_FILENO, TCSANOW, &newt );
-//	strcpy(action, "undefined");
 	array_init_size(return_value, 2);
 	while (1) {
 		pressed_key = getchar();
@@ -115,14 +112,12 @@ void getAction(long anz_activities, zval* return_value) {
 			php_printf("\x1B[%d;%dH", line + 4, 3);
 		}
 		if (pressed_key == 'q') {
-//			sprintf(action, "quit,%d", line);
 			add_next_index_string(return_value, "quit", 1);
 			add_next_index_long(return_value, line);
 
 			break;
 		}
 		if (pressed_key == 10) {  //is ENTER pressed?
-//			sprintf(action, "enter,%d", line);
 			add_next_index_string(return_value, "enter", 1);
 			add_next_index_long(return_value, line);
 			break;
@@ -130,7 +125,6 @@ void getAction(long anz_activities, zval* return_value) {
 	}
 	stop = 1;
 	tcsetattr( STDIN_FILENO, TCSANOW, &oldt );
-	//	return (char*)&action;
 	return;
 }
 
@@ -139,7 +133,6 @@ void getAction(long anz_activities, zval* return_value) {
  */
 PHP_FUNCTION(dime_clock_action) {
 	long anz_activities;
-//	char action[100];
 	void* status;
 	zval *clock_array;
 	pthread_t clock_thread;
@@ -155,21 +148,23 @@ PHP_FUNCTION(dime_clock_action) {
 	clock_args.anz_clocks = 0;
 	clock_args.clock = NULL;
 
-	//	pthread_create(&clock_thread, NULL, clock_loop, (void*)&clock_args);
 	run_clocks(&clock_thread, &clock_args, clock_array);
-	//	strcpy(action, getAction(anz_activities, return_value));
 	getAction(anz_activities, return_value);
 	stop = 1;
 	pthread_join(clock_thread, &status);
 	efree(clock_args.clock);
 
 	RETURN_ZVAL(return_value, 0, 0);
-	//	RETURN_STRING(action, 1);
 }
+
+ZEND_BEGIN_ARG_INFO(arginfo_dime_clock_action, 0)
+ZEND_ARG_INFO(0, anz_activities)
+ZEND_ARG_INFO(0, clock_array)
+ZEND_END_ARG_INFO()
 
 // We give PHP aware of our function, indicating its function table module.
 const zend_function_entry clockthread_functions[] = {
-	PHP_FE(dime_clock_action, NULL)
+	PHP_FE(dime_clock_action, arginfo_dime_clock_action)
 	PHP_FE_END
 };
 
