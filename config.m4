@@ -7,8 +7,8 @@ dnl without editing.
 
 dnl If your extension references something external, use with:
 
-PHP_ARG_WITH(clockthread, for clockthread support,
-[  --with-clockthread             Include clockthread support])
+PHP_ARG_ENABLE(clockthread, for clockthread support,
+[  --enable-clockthread             Include clockthread support])
 
 if test "$PHP_CLOCKTHREAD" != "no"; then
   AC_DEFINE(HAVE_CLOCKTHREADLIB,1,[ ])
